@@ -12,7 +12,7 @@ logs:
 
 # Executar o script principal
 run:
-	python example.py
+	python main.py
 
 # Instalar dependências
 install:
