@@ -1,163 +1,117 @@
 # 🚀 GitHub Data Ingestion with PyAirbyte + PostgreSQL
 
-This project demonstrates how to extract data from GitHub repositories using the `pyairbyte` library, cache it in PostgreSQL, and load it into a local PostgreSQL database.
+This project demonstrates how to extract data from GitHub repositories using the `pyairbyte` library, cache it in PostgreSQL, and load it into a local PostgreSQL database using a simple development workflow with `make`.
 
 ---
 
 ## 📦 Technologies Used
 
 - [PyAirbyte](https://docs.airbyte.com/platform/using-airbyte/pyairbyte/)
-- PostgreSQL
-- Docker (optional, recommended for local setup)
+- PostgreSQL (via Docker)
 - Python 3.10+
+- `make` for command automation
 
 ---
 
-## 📁 Code Overview
+## 📁 Project Structure
 
-```python
-from __future__ import annotations
-import airbyte as ab
-from airbyte.caches import PostgresCache
 ```
-
-Imports the necessary modules. The `pyairbyte` library is used to interact with Airbyte connectors directly from Python.
+.
+├── docker-compose.yml     # PostgreSQL database setup
+├── main.py                # Python script to extract and load GitHub data
+├── Makefile               # Automation of commands
+├── requirements.txt       # Python dependencies
+└── .env                   # GitHub token (not committed)
+```
 
 ---
 
-### 🔄 1. GitHub Source Configuration
+## 🐘 PostgreSQL via Docker
 
-```python
-source = ab.get_source(
-    "source-github",
-    install_if_missing=True,
-    config={
-        "repositories": ["leds-conectafapes/*"],
-        "credentials": {
-            "personal_access_token": "YOUR_TOKEN_HERE",
-        },
-    },
-)
+Start the database using Docker Compose:
+
+```bash
+make up
 ```
 
-- **source-github**: official GitHub source connector.
-- **repositories**: list of GitHub repositories to pull data from.
-- **credentials**: personal access token for GitHub (⚠️ **Never expose your token in public code**).
+This runs a PostgreSQL container with:
+- **Host**: `localhost` (or `host.docker.internal` from Docker)
+- **Port**: `5432`
+- **Database**: `meu_bancox`
+- **User**: `postgres`
+- **Password**: `postgres`
+
+To stop it:
+
+```bash
+make down
+```
 
 ---
 
-### ✅ 2. Check Source Configuration
+## 🔐 Environment Variables
 
-```python
-source.check()
+Create a `.env` file to store your GitHub personal access token:
+
+```env
+GITHUB_TOKEN=ghp_your_token_here
 ```
 
-Verifies the configuration and credentials before proceeding.
+> ⚠️ **Do not commit this file** to version control. Add `.env` to your `.gitignore`.
 
 ---
 
-### 📚 3. Select Data Streams
+## 📦 Install Dependencies
 
-```python
-source.select_streams([
-    "issues", "repositories", "pull_requests", "commits",
-    "teams", "users", "issue_milestones", "projects_v2",
-    "team_members", "team_memberships"
-])
+Install the required Python packages:
+
+```bash
+make install
 ```
-
-Specifies which data streams (similar to tables) you want to extract from GitHub.
 
 ---
 
-### 🗃️ 4. Set Up PostgreSQL Cache
+## ▶️ Run the Data Pipeline
 
-```python
-cache = PostgresCache(
-    host="localhost",
-    port=5432,
-    username="postgres",
-    password="postgres",
-    database="databaseX"
-)
+To execute the data ingestion process (extract from GitHub and load into PostgreSQL):
+
+```bash
+make run
 ```
 
-A local PostgreSQL database is used as a cache to avoid re-fetching unchanged data and improve performance.
+Or to automatically load the `GITHUB_TOKEN` from `.env`:
+
+```bash
+make start
+```
 
 ---
 
-### 📥 5. Read Data from GitHub
+## 📋 Available Make Commands
 
-```python
-read_result = source.read(force_full_refresh=True, cache=cache)
-```
-
-Fetches data from GitHub. Setting `force_full_refresh=True` ensures all data is retrieved (you can change to `False` for incremental sync).
-
----
-
-### 🛢️ 6. Write Data to PostgreSQL
-
-```python
-destination = ab.get_destination(
-    "destination-postgres",
-    config={
-        "host": "host.docker.internal",
-        "port": 5432,
-        "database": "databaseX",
-        "username": "postgres",
-        "password": "postgres",
-        "schema": "public",
-        "ssl": False,
-        "sslmode": "disable"
-    },
-    docker_image=True
-)
-
-write_result = destination.write(read_result, force_full_refresh=True, cache=cache)
-```
-
-Defines the PostgreSQL database as the destination and loads the data retrieved from GitHub.
-
----
-
-### 📊 7. View Write Operation Result
-
-```python
-print(write_result.__dict__)
-```
-
-Prints the result of the write operation. Useful for debugging and validation.
+| Command       | Description                               |
+|---------------|-------------------------------------------|
+| `make up`     | Start PostgreSQL database with Docker     |
+| `make down`   | Stop and remove containers                |
+| `make logs`   | Show PostgreSQL logs                      |
+| `make install`| Install Python dependencies               |
+| `make run`    | Run the main script manually              |
+| `make start`  | Run the script with `.env` token loaded   |
 
 ---
 
 ## ✅ Requirements
 
 - Python 3.10+
-- A local or Dockerized PostgreSQL instance
-- GitHub personal access token with appropriate permissions
+- Docker + Docker Compose
+- GitHub personal access token (PAT)
+- Make (Linux/macOS or WSL for Windows)
 
 ---
 
-## 🚀 How to Run
+## 💡 Security Best Practice
 
-1. Install dependencies:
-
-```bash
-pip install airbyte
-```
-
-2. Run the script:
-
-```bash
-python main.py
-```
-
----
-
-## ⚠️ Security Tips
-
-Never expose secrets or tokens in source code. Prefer using environment variables for secure access:
+Do not hardcode secrets in the script. Use environment variables instead. Access them safely in Python:
 
 ```python
 import os
