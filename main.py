@@ -1,10 +1,12 @@
 from __future__ import annotations
 import airbyte as ab
 from airbyte.caches import PostgresCache
-import os
+from os import getenv
+from dotenv import load_dotenv
 
+load_dotenv()
 # GitHub personal access token stored securely in environment variable
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_TOKEN = getenv("GITHUB_TOKEN")
 
 # Configure the GitHub source
 source = ab.get_source(
